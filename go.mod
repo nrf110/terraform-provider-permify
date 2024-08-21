@@ -1,4 +1,4 @@
-module github.com/hashicorp/terraform-provider-scaffolding-framework
+module github.com/nrf110/terraform-provider-permify
 
 go 1.21
 
