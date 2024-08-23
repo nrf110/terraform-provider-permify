@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package provider
 
 import (
@@ -15,8 +12,17 @@ import (
 // CLI command executed to create a provider server to which the CLI can
 // reattach.
 var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
-	"scaffolding": providerserver.NewProtocol6WithError(New("test")()),
+	"permify": providerserver.NewProtocol6WithError(New("test")()),
 }
+
+const (
+	// providerConfig is a shared configuration to combine with the actual
+	// test configuration so the Permify client is properly configured.
+	providerConfig = `provider "permify" {
+  endpoint = "localhost:3478"
+}
+`
+)
 
 func testAccPreCheck(t *testing.T) {
 	// You can add code here to run prior to any test case execution, for example assertions

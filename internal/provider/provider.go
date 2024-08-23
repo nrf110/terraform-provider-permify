@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package provider
 
 import (
@@ -12,6 +9,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 var _ provider.Provider = &permifyProvider{}
@@ -24,13 +23,15 @@ type permifyProvider struct {
 	version string
 }
 
-// ScaffoldingProviderModel describes the provider data model.
-type ScaffoldingProviderModel struct {
+type PermifyProviderModel struct {
 	Endpoint types.String `tfsdk:"endpoint"`
+	Cert     types.String `tfsdk:"cert"`
+	CertFile types.String `tfsdk:"cert_file"`
+	Token    types.String `tfsdk:"token"`
 }
 
 func (p *permifyProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
-	resp.TypeName = "scaffolding"
+	resp.TypeName = "permify"
 	resp.Version = p.version
 }
 
@@ -38,7 +39,19 @@ func (p *permifyProvider) Schema(ctx context.Context, req provider.SchemaRequest
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"endpoint": schema.StringAttribute{
-				MarkdownDescription: "Example provider attribute",
+				MarkdownDescription: "gRPC endpoint for the Permify API",
+				Required:            true,
+			},
+			"token": schema.StringAttribute{
+				MarkdownDescription: "Bearer Token to authenticated to the Permify API",
+				Optional:            true,
+			},
+			"cert": schema.StringAttribute{
+				MarkdownDescription: "Base64 encoded string representation of a PEM encoded certificate",
+				Optional:            true,
+			},
+			"cert_file": schema.StringAttribute{
+				MarkdownDescription: "File path of PEM encoded certificate",
 				Optional:            true,
 			},
 		},
@@ -46,7 +59,7 @@ func (p *permifyProvider) Schema(ctx context.Context, req provider.SchemaRequest
 }
 
 func (p *permifyProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
-	var data ScaffoldingProviderModel
+	var data PermifyProviderModel
 
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 
@@ -54,14 +67,23 @@ func (p *permifyProvider) Configure(ctx context.Context, req provider.ConfigureR
 		return
 	}
 
-	client, err := permify_grpc.NewClient()
+	client, err := permify_grpc.NewClient(
+		permify_grpc.Config{
+			Endpoint: data.Endpoint.ValueString(),
+		},
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		//grpc.WithUnaryInterceptor(AuthInterceptor(data.Token.ValueString())),
+	)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to initialize Permify client", err.Error())
+	}
 	resp.DataSourceData = client
 	resp.ResourceData = client
 }
 
 func (p *permifyProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
-		NewExampleResource,
+		NewTenantResource,
 	}
 }
 

@@ -37,7 +37,8 @@ Please see the Go documentation for the most up to date information about using 
 To add a new dependency `github.com/author/dependency` to your Terraform provider:
 
 ```shell
-go get github.com/author/dependency
+go get buf.build/gen/go/permifyco/permify/protocolbuffers/go/base/v1
+go get github.com/Permify/permify-go
 go mod tidy
 ```
 
