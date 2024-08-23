@@ -18,12 +18,6 @@ var _ resource.Resource = &tenantResource{}
 var _ resource.ResourceWithConfigure = &tenantResource{}
 var _ resource.ResourceWithImportState = &tenantResource{}
 
-type tenantModel struct {
-	ID        types.String `tfsdk:"id"`
-	Name      types.String `tfsdk:"name"`
-	CreatedAt types.String `tfsdk:"created_at"`
-}
-
 type tenantResource struct {
 	client *permify_grpc.Client
 }
@@ -32,12 +26,12 @@ func NewTenantResource() resource.Resource {
 	return &tenantResource{}
 }
 
-func (r *tenantResource) Configure(ctx context.Context, request resource.ConfigureRequest, response *resource.ConfigureResponse) {
-	if request.ProviderData == nil {
+func (r *tenantResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	if req.ProviderData == nil {
 		return
 	}
 
-	client, ok := request.ProviderData.(*permify_grpc.Client)
+	client, ok := req.ProviderData.(*permify_grpc.Client)
 	if !ok {
 		tflog.Error(ctx, "Unable to prepare client")
 		return
@@ -45,14 +39,13 @@ func (r *tenantResource) Configure(ctx context.Context, request resource.Configu
 	r.client = client
 }
 
-func (r *tenantResource) Metadata(ctx context.Context, request resource.MetadataRequest, response *resource.MetadataResponse) {
-	response.TypeName = request.ProviderTypeName + "_tenant"
+func (r *tenantResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_tenant"
 }
 
-func (r *tenantResource) Schema(ctx context.Context, request resource.SchemaRequest, response *resource.SchemaResponse) {
-	response.Schema = schema.Schema{
+func (r *tenantResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
 		MarkdownDescription: "Tenant resource",
-
 		Attributes: map[string]schema.Attribute{
 			"created_at": schema.StringAttribute{
 				MarkdownDescription: "Created timestamp",
@@ -76,14 +69,13 @@ func (r *tenantResource) Schema(ctx context.Context, request resource.SchemaRequ
 	}
 }
 
-func (r *tenantResource) Create(ctx context.Context, request resource.CreateRequest, response *resource.CreateResponse) {
+func (r *tenantResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	tflog.Debug(ctx, "Preparing to create tenant resource")
-	var data tenantModel
+	var data TenantModel
 	// Read Terraform plan data into the model
-	diags := request.Plan.Get(ctx, &data)
-	response.Diagnostics.Append(diags...)
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 
-	if response.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
@@ -92,65 +84,61 @@ func (r *tenantResource) Create(ctx context.Context, request resource.CreateRequ
 		Name: data.Name.ValueString(),
 	})
 	if err != nil {
-		response.Diagnostics.AddError("Failed to create Permify Tenant", err.Error())
+		resp.Diagnostics.AddError("Failed to create Permify Tenant", err.Error())
 		return
 	}
 
 	data.CreatedAt = types.StringValue(result.Tenant.CreatedAt.AsTime().Format(time.RFC3339))
 
 	// Save data into Terraform state
-	diags = response.State.Set(ctx, &data)
-	response.Diagnostics.Append(diags...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 
 	tflog.Debug(ctx, "Created Tenant resource", map[string]any{"success": true})
 }
 
-func (r *tenantResource) Read(ctx context.Context, request resource.ReadRequest, response *resource.ReadResponse) {
+func (r *tenantResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	tflog.Debug(ctx, "Preparing to read item resource")
 	// Get current state
-	var state tenantModel
-	diags := request.State.Get(ctx, &state)
-	response.Diagnostics.Append(diags...)
-	if response.Diagnostics.HasError() {
+	var state TenantModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	tenant, err := r.findTenant(ctx, state.ID.ValueString())
+	tenant, err := findTenant(ctx, r.client, state.ID.ValueString())
 	if err != nil {
-		response.Diagnostics.AddError("Error reading Permify Tenant", err.Error())
+		resp.Diagnostics.AddError("Error reading Permify Tenant", err.Error())
 	}
 
 	if tenant == nil {
-		response.State.RemoveResource(ctx)
+		resp.State.RemoveResource(ctx)
 	}
 
-	// Map response body to model
-	state = tenantModel{
+	// Map resp body to model
+	state = TenantModel{
 		ID:        types.StringValue(tenant.Id),
 		Name:      types.StringValue(tenant.Name),
 		CreatedAt: types.StringValue(tenant.CreatedAt.AsTime().Format(time.RFC3339)),
 	}
 
 	// Set refreshed state
-	diags = response.State.Set(ctx, &state)
-	response.Diagnostics.Append(diags...)
-	if response.Diagnostics.HasError() {
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 	tflog.Debug(ctx, "Finished reading Permify Tenant resource", map[string]any{"success": true})
 }
 
-func (r *tenantResource) Update(ctx context.Context, request resource.UpdateRequest, response *resource.UpdateResponse) {
-	response.Diagnostics.AddError("Updating tenants is unsupported", "Cannot update a tenant, delete and recreate is required")
+func (r *tenantResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	resp.Diagnostics.AddError("Updating tenants is unsupported", "Cannot update a tenant, delete and recreate is required")
 }
 
-func (r *tenantResource) Delete(ctx context.Context, request resource.DeleteRequest, response *resource.DeleteResponse) {
+func (r *tenantResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	tflog.Debug(ctx, "Preparing to delete Permify Tenant resource")
 	// Retrieve values from state
-	var state tenantModel
-	diags := request.State.Get(ctx, &state)
-	response.Diagnostics.Append(diags...)
-	if response.Diagnostics.HasError() {
+	var state TenantModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
@@ -159,7 +147,7 @@ func (r *tenantResource) Delete(ctx context.Context, request resource.DeleteRequ
 		Id: state.ID.ValueString(),
 	})
 	if err != nil {
-		response.Diagnostics.AddError(
+		resp.Diagnostics.AddError(
 			"Unable to Delete Permify Tenant",
 			err.Error(),
 		)
@@ -168,29 +156,6 @@ func (r *tenantResource) Delete(ctx context.Context, request resource.DeleteRequ
 	tflog.Debug(ctx, "Deleted Permify Tenant resource", map[string]any{"success": true})
 }
 
-func (r *tenantResource) ImportState(ctx context.Context, request resource.ImportStateRequest, response *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), request, response)
-}
-
-func (r *tenantResource) findTenant(ctx context.Context, id string) (*permify_payload.Tenant, error) {
-	token := ""
-	firstRun := true
-
-	for token != "" || firstRun {
-		result, err := r.client.Tenancy.List(ctx, &permify_payload.TenantListRequest{
-			PageSize:        100,
-			ContinuousToken: token,
-		})
-		if err != nil {
-			return nil, err
-		}
-		for _, tenant := range result.Tenants {
-			if tenant.Id == id {
-				return tenant, nil
-			}
-		}
-		firstRun = false
-		token = result.ContinuousToken
-	}
-	return nil, nil
+func (r *tenantResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }

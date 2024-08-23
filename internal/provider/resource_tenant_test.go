@@ -13,7 +13,9 @@ func TestAccTenantResource(t *testing.T) {
 	resourceName := "permify_tenant.test"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			// Create and Read testing
@@ -46,7 +48,7 @@ func TestAccTenantResource(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "name", "uno"),
 					resource.TestCheckResourceAttrWith(resourceName, "created_at", func(value string) error {
 						if createdAt != value {
-							fmt.Errorf("expected created_at to be %s, but got %s", createdAt, value)
+							return fmt.Errorf("expected created_at to be %s, but got %s", createdAt, value)
 						}
 						return nil
 					}),
