@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+
 	permify_grpc "github.com/Permify/permify-go/grpc"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/function"
@@ -11,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 )
 
 var _ provider.Provider = &permifyProvider{}
@@ -72,7 +74,7 @@ func (p *permifyProvider) Configure(ctx context.Context, req provider.ConfigureR
 			Endpoint: data.Endpoint.ValueString(),
 		},
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		//grpc.WithUnaryInterceptor(AuthInterceptor(data.Token.ValueString())),
+		//grpc.WithUnaryInterceptor(authInterceptor(data.Token.ValueString())),
 	)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to initialize Permify client", err.Error())
@@ -83,6 +85,7 @@ func (p *permifyProvider) Configure(ctx context.Context, req provider.ConfigureR
 
 func (p *permifyProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
+		NewSchemaResource,
 		NewTenantResource,
 	}
 }
@@ -104,5 +107,11 @@ func New(version string) func() provider.Provider {
 		return &permifyProvider{
 			version: version,
 		}
+	}
+}
+
+func authInterceptor(token string) grpc.UnaryClientInterceptor {
+	return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+		return invoker(metadata.AppendToOutgoingContext(ctx, "authorization", token), method, req, reply, cc, opts...)
 	}
 }
