@@ -1,8 +1,10 @@
 package provider
 
 import (
-	permify_payload "buf.build/gen/go/permifyco/permify/protocolbuffers/go/base/v1"
 	"context"
+	"time"
+
+	permify_payload "buf.build/gen/go/permifyco/permify/protocolbuffers/go/base/v1"
 	permify_grpc "github.com/Permify/permify-go/grpc"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -11,7 +13,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"time"
 )
 
 var _ resource.Resource = &tenantResource{}
@@ -134,7 +135,6 @@ func (r *tenantResource) Update(ctx context.Context, req resource.UpdateRequest,
 }
 
 func (r *tenantResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	tflog.Debug(ctx, "Preparing to delete Permify Tenant resource")
 	// Retrieve values from state
 	var state TenantModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
@@ -142,14 +142,40 @@ func (r *tenantResource) Delete(ctx context.Context, req resource.DeleteRequest,
 		return
 	}
 
+	tflog.Debug(ctx, "Preparing to delete Permify Tenant resource", map[string]any{"id": state.ID.ValueString()})
+
 	// delete item
-	_, err := r.client.Tenancy.Delete(ctx, &permify_payload.TenantDeleteRequest{
+	_, deleteErr := r.client.Tenancy.Delete(ctx, &permify_payload.TenantDeleteRequest{
 		Id: state.ID.ValueString(),
 	})
+	// TODO: Handle error.  Currently there is a bug in Permify causing an unmarshalling error, even if the delete was successful.
+	// if err != nil {
+	// 	resp.Diagnostics.AddError(
+	// 		"Unable to Delete Permify Tenant",
+	// 		err.Error(),
+	// 	)
+	// 	return
+	// }
+
+	// TODO: Either remove this once the bug in Permify is fixed, or add paging logic in case of more than 100 tenants.
+	listResult, err := r.client.Tenancy.List(ctx, &permify_payload.TenantListRequest{
+		PageSize: 100,
+	})
 	if err != nil {
+		resp.Diagnostics.AddError("Error listing Permify Tenants", err.Error())
+		return
+	}
+	found := false
+	for _, tenant := range listResult.Tenants {
+		if tenant.Id == state.ID.ValueString() {
+			found = true
+			break
+		}
+	}
+	if found && deleteErr != nil {
 		resp.Diagnostics.AddError(
-			"Unable to Delete Permify Tenant",
-			err.Error(),
+			"Error deleting Permify Tenant",
+			deleteErr.Error(),
 		)
 		return
 	}

@@ -15,15 +15,6 @@ var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServe
 	"permify": providerserver.NewProtocol6WithError(New("test")()),
 }
 
-const (
-	// providerConfig is a shared configuration to combine with the actual
-	// test configuration so the Permify client is properly configured.
-	providerConfig = `provider "permify" {
-  endpoint = "localhost:3478"
-}
-`
-)
-
 func testAccPreCheck(t *testing.T) {
 	// You can add code here to run prior to any test case execution, for example assertions
 	// about the appropriate environment variables being set are common to see in a pre-check

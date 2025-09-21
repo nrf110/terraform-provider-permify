@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -41,17 +40,16 @@ func (r *schemaResource) Configure(ctx context.Context, req resource.ConfigureRe
 }
 
 func (r *schemaResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_tenant"
+	resp.TypeName = req.ProviderTypeName + "_schema"
 }
 
 func (r *schemaResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Tenant resource",
+		MarkdownDescription: "Schema resource",
 		Attributes: map[string]schema.Attribute{
 			"tenant_id": schema.StringAttribute{
 				MarkdownDescription: "The ID of the tenant the schema belongs to",
-				Required:            false,
-				Default:             stringdefault.StaticString("t1"),
+				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
@@ -76,7 +74,7 @@ func (r *schemaResource) Schema(ctx context.Context, req resource.SchemaRequest,
 }
 
 func (r *schemaResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	tflog.Debug(ctx, "Preparing to create tenant resource")
+	tflog.Debug(ctx, "Preparing to create schema resource")
 	var data SchemaModel
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -138,15 +136,35 @@ func (r *schemaResource) Read(ctx context.Context, req resource.ReadRequest, res
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	tflog.Debug(ctx, "Finished reading Permify Tenant resource", map[string]any{"success": true})
+	tflog.Debug(ctx, "Finished reading Permify Schema resource", map[string]any{"success": true})
 }
 
 func (r *schemaResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	resp.Diagnostics.AddError("Updating tenants is unsupported", "Cannot update a tenant, delete and recreate is required")
+	tflog.Debug(ctx, "Preparing to update schema resource")
+	var data SchemaModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	result, err := r.client.Schema.Write(ctx, &permify_payload.SchemaWriteRequest{
+		TenantId: data.TenantID.ValueString(),
+		Schema:   data.Schema.ValueString(),
+	})
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to update Permify Schema", err.Error())
+		return
+	}
+	data.SchemaVersion = types.StringValue(result.SchemaVersion)
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+
+	tflog.Debug(ctx, "Updated Permify Schema resource", map[string]any{"success": true})
 }
 
 func (r *schemaResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	tflog.Debug(ctx, "Preparing to delete Permify Tenant resource")
+	tflog.Debug(ctx, "Preparing to delete Permify Schema resource")
 	// Retrieve values from state
 	var state SchemaModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
@@ -161,12 +179,12 @@ func (r *schemaResource) Delete(ctx context.Context, req resource.DeleteRequest,
 	})
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Unable to Delete Permify Tenant",
+			"Unable to Delete Permify Schema",
 			err.Error(),
 		)
 		return
 	}
-	tflog.Debug(ctx, "Deleted Permify Tenant resource", map[string]any{"success": true})
+	tflog.Debug(ctx, "Deleted Permify Schema resource", map[string]any{"success": true})
 }
 
 func (r *schemaResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

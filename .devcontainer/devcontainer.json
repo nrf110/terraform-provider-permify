@@ -1,0 +1,34 @@
+{
+    "name": "Permify",
+    "dockerFile": "Dockerfile",
+    "workspaceFolder": "/workspace",
+    "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
+    "remoteUser": "vscode",
+    "features": {
+        "ghcr.io/devcontainers/features/terraform:1": {
+            "installTerraformDocs": true
+        }
+    },
+    "capAdd": [
+        "SYS_PTRACE"
+    ],
+    "hostRequirements": {
+        "memory": "4gb"
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "golang.go",
+                "ms-vscode.extension-test-runner",
+                "codezombiech.gitignore",
+                "ms-vscode.makefile-tools",
+                "hashicorp.terraform",
+                "bahramjoharshamshiri.hcl-lsp",
+                "eriklynd.json-tools",
+                "usernamehw.errorlens",
+                "esbenp.prettier-vscode",
+                "github.vscode-pull-request-github"
+            ]
+        }
+    }
+}
