@@ -5,7 +5,6 @@ import (
 
 	permify_payload "buf.build/gen/go/permifyco/permify/protocolbuffers/go/base/v1"
 	permify_grpc "github.com/Permify/permify-go/grpc"
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -92,7 +91,7 @@ func (r *schemaResource) Create(ctx context.Context, req resource.CreateRequest,
 		return
 	}
 
-	data.ID = types.StringValue(data.TenantID.ValueString())
+	data.ID = data.TenantID
 	data.SchemaVersion = types.StringValue(result.SchemaVersion)
 
 	// Save data into Terraform state
@@ -111,7 +110,7 @@ func (r *schemaResource) Read(ctx context.Context, req resource.ReadRequest, res
 	}
 
 	schema, err := r.client.Schema.Read(ctx, &permify_payload.SchemaReadRequest{
-		TenantId: state.ID.ValueString(),
+		TenantId: state.TenantID.ValueString(),
 		Metadata: &permify_payload.SchemaReadRequestMetadata{SchemaVersion: state.SchemaVersion.ValueString()},
 	})
 	if err != nil {
@@ -125,7 +124,7 @@ func (r *schemaResource) Read(ctx context.Context, req resource.ReadRequest, res
 
 	// Map resp body to model
 	state = SchemaModel{
-		ID:            types.StringValue(state.ID.ValueString()),
+		ID:            types.StringValue(state.TenantID.ValueString()),
 		TenantID:      types.StringValue(state.TenantID.ValueString()),
 		Schema:        types.StringValue(state.Schema.ValueString()),
 		SchemaVersion: types.StringValue(state.SchemaVersion.ValueString()),
@@ -164,29 +163,7 @@ func (r *schemaResource) Update(ctx context.Context, req resource.UpdateRequest,
 }
 
 func (r *schemaResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	tflog.Debug(ctx, "Preparing to delete Permify Schema resource")
-	// Retrieve values from state
-	var state SchemaModel
-	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// delete item
-	_, err := r.client.Schema.Write(ctx, &permify_payload.SchemaWriteRequest{
-		TenantId: state.TenantID.ValueString(),
-		Schema:   "",
-	})
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Unable to Delete Permify Schema",
-			err.Error(),
-		)
-		return
-	}
-	tflog.Debug(ctx, "Deleted Permify Schema resource", map[string]any{"success": true})
 }
 
 func (r *schemaResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
