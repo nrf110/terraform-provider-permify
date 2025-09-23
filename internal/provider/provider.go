@@ -65,17 +65,11 @@ func (p *permifyProvider) Configure(ctx context.Context, req provider.ConfigureR
 		return
 	}
 
-	options, err := getOptions(data)
-	if err != nil {
-		resp.Diagnostics.AddError("Failed to get options", err.Error())
-		return
-	}
-
 	client, err := permify_grpc.NewClient(
 		permify_grpc.Config{
 			Endpoint: data.Endpoint.ValueString(),
 		},
-		options...,
+		getOptions(data)...,
 	)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to initialize Permify client", err.Error())
@@ -109,7 +103,7 @@ func New(version string) func() provider.Provider {
 	}
 }
 
-func getOptions(data PermifyProviderModel) ([]grpc.DialOption, error) {
+func getOptions(data PermifyProviderModel) []grpc.DialOption {
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
@@ -117,7 +111,7 @@ func getOptions(data PermifyProviderModel) ([]grpc.DialOption, error) {
 		options = append(options, grpc.WithUnaryInterceptor(authInterceptor(data.Token.ValueString())))
 	}
 
-	return options, nil
+	return options
 }
 
 func authInterceptor(token string) grpc.UnaryClientInterceptor {
