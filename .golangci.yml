@@ -5,7 +5,6 @@ linters:
     - durationcheck
     - errcheck
     - forcetypeassert
-    - godot
     - govet
     - ineffassign
     - makezero

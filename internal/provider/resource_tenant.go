@@ -113,6 +113,7 @@ func (r *tenantResource) Read(ctx context.Context, req resource.ReadRequest, res
 
 	if tenant == nil {
 		resp.State.RemoveResource(ctx)
+		return
 	}
 
 	// Map resp body to model
