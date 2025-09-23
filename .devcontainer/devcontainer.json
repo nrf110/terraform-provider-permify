@@ -27,7 +27,8 @@
                 "eriklynd.json-tools",
                 "usernamehw.errorlens",
                 "esbenp.prettier-vscode",
-                "github.vscode-pull-request-github"
+                "github.vscode-pull-request-github",
+                "github.vscode-github-actions"
             ]
         }
     }
