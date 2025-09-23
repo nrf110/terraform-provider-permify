@@ -27,8 +27,6 @@ type permifyProvider struct {
 
 type PermifyProviderModel struct {
 	Endpoint types.String `tfsdk:"endpoint"`
-	Cert     types.String `tfsdk:"cert"`
-	CertFile types.String `tfsdk:"cert_file"`
 	Token    types.String `tfsdk:"token"`
 }
 
@@ -41,20 +39,13 @@ func (p *permifyProvider) Schema(ctx context.Context, req provider.SchemaRequest
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"endpoint": schema.StringAttribute{
-				MarkdownDescription: "gRPC endpoint for the Permify API",
+				MarkdownDescription: "gRPC endpoint for the Permify API.  Defaults to `localhost:3478`.",
 				Required:            true,
 			},
 			"token": schema.StringAttribute{
-				MarkdownDescription: "Bearer Token to authenticated to the Permify API",
+				MarkdownDescription: "Bearer Token to authenticated to the Permify API.  Can be an OAuth2 token a Pre-Shared Key.",
 				Optional:            true,
-			},
-			"cert": schema.StringAttribute{
-				MarkdownDescription: "Base64 encoded string representation of a PEM encoded certificate",
-				Optional:            true,
-			},
-			"cert_file": schema.StringAttribute{
-				MarkdownDescription: "File path of PEM encoded certificate",
-				Optional:            true,
+				Sensitive:           true,
 			},
 		},
 	}
@@ -69,12 +60,22 @@ func (p *permifyProvider) Configure(ctx context.Context, req provider.ConfigureR
 		return
 	}
 
+	if data.Endpoint.IsNull() || data.Endpoint.ValueString() == "" {
+		data.Endpoint = types.StringValue("localhost:3478")
+		return
+	}
+
+	options, err := getOptions(data)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to get options", err.Error())
+		return
+	}
+
 	client, err := permify_grpc.NewClient(
 		permify_grpc.Config{
 			Endpoint: data.Endpoint.ValueString(),
 		},
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		//grpc.WithUnaryInterceptor(authInterceptor(data.Token.ValueString())),
+		options...,
 	)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to initialize Permify client", err.Error())
@@ -106,6 +107,17 @@ func New(version string) func() provider.Provider {
 			version: version,
 		}
 	}
+}
+
+func getOptions(data PermifyProviderModel) ([]grpc.DialOption, error) {
+	options := []grpc.DialOption{
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	}
+	if !data.Token.IsNull() && data.Token.ValueString() != "" {
+		options = append(options, grpc.WithUnaryInterceptor(authInterceptor(data.Token.ValueString())))
+	}
+
+	return options, nil
 }
 
 func authInterceptor(token string) grpc.UnaryClientInterceptor {
