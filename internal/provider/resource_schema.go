@@ -122,7 +122,6 @@ func (r *schemaResource) Read(ctx context.Context, req resource.ReadRequest, res
 		resp.State.RemoveResource(ctx)
 	}
 
-	// Map resp body to model
 	state = SchemaModel{
 		ID:            types.StringValue(state.TenantID.ValueString()),
 		TenantID:      types.StringValue(state.TenantID.ValueString()),
