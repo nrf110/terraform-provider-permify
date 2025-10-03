@@ -48,6 +48,10 @@ func (r *bundlesResource) Schema(ctx context.Context, req resource.SchemaRequest
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Bundles resource",
 		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				MarkdownDescription: "Unique identifier",
+				Computed:            true,
+			},
 			"tenant_id": schema.StringAttribute{
 				MarkdownDescription: "The ID of the tenant the bundles belong to",
 				Required:            true,
@@ -189,6 +193,8 @@ func (r *bundlesResource) Update(ctx context.Context, req resource.UpdateRequest
 		resp.Diagnostics.AddError("Failed to update Permify Bundles", err.Error())
 		return
 	}
+
+	data.ID = data.TenantID
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 

@@ -82,6 +82,7 @@ func (p *permifyProvider) Resources(ctx context.Context) []func() resource.Resou
 	return []func() resource.Resource{
 		NewSchemaResource,
 		NewTenantResource,
+		NewBundlesResource,
 	}
 }
 
