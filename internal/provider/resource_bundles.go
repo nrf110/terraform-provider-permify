@@ -80,22 +80,22 @@ func (r *bundlesResource) Schema(ctx context.Context, req resource.SchemaRequest
 								Attributes: map[string]schema.Attribute{
 									"relationships_write": schema.ListAttribute{
 										MarkdownDescription: "Relationships that should be written by the bundle",
-										Required:            true,
+										Optional:            true,
 										ElementType:         types.StringType,
 									},
 									"relationships_delete": schema.ListAttribute{
 										MarkdownDescription: "Relationships that should be deleted by the bundle",
-										Required:            true,
+										Optional:            true,
 										ElementType:         types.StringType,
 									},
 									"attributes_write": schema.ListAttribute{
 										MarkdownDescription: "Attributes that should be written by the bundle",
-										Required:            true,
+										Optional:            true,
 										ElementType:         types.StringType,
 									},
 									"attributes_delete": schema.ListAttribute{
 										MarkdownDescription: "Attributes that should be deleted by the bundle",
-										Required:            true,
+										Optional:            true,
 										ElementType:         types.StringType,
 									},
 								},
