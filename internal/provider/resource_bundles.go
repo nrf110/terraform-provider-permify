@@ -188,13 +188,41 @@ func (r *bundlesResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
+	var existing BundlesModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &existing)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	_, err := r.client.Bundle.Write(ctx, data.ToWriteRequest())
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to update Permify Bundles", err.Error())
 		return
 	}
 
-	data.ID = data.TenantID
+	var (
+		mu      sync.Mutex
+		wg      sync.WaitGroup
+		removed []string
+	)
+
+	for _, bundle := range existing.Removed(data) {
+		wg.Go(func() {
+			mu.Lock()
+			defer mu.Unlock()
+			_, err := r.client.Bundle.Delete(ctx, &permify_payload.BundleDeleteRequest{
+				TenantId: data.TenantID.ValueString(),
+				Name:     bundle.Name.ValueString(),
+			})
+			if err != nil {
+				resp.Diagnostics.AddError("Failed to delete Permify Bundle", err.Error())
+			} else {
+				removed = append(removed, bundle.Name.ValueString())
+			}
+		})
+	}
+	wg.Wait()
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 

@@ -116,3 +116,19 @@ func (b BundlesModel) ToWriteRequest() *permify_payload.BundleWriteRequest {
 		Bundles:  bundles,
 	}
 }
+
+func (b BundlesModel) Removed(new BundlesModel) []BundleModel {
+	inNew := make(map[string]bool)
+	for _, bundle := range new.Bundles {
+		inNew[bundle.Name.ValueString()] = true
+	}
+	removed := make([]BundleModel, 0)
+
+	for _, bundle := range b.Bundles {
+		_, found := inNew[bundle.Name.ValueString()]
+		if !found {
+			removed = append(removed, bundle)
+		}
+	}
+	return removed
+}

@@ -161,48 +161,6 @@ bundles = [
 ]
 `
 
-const updatedBundlesDefinition = `
-bundles = [
-  {
-    name = "user_bundle"
-    arguments = ["user_id", "organization_id", "role"]
-    operations = [
-      {
-        relationships_write = [
-          "organization:$${organization_id}#member@user:$${user_id}",
-          "organization:$${organization_id}#admin@user:$${user_id}"
-        ]
-        relationships_delete = []
-        attributes_write = []
-        attributes_delete = []
-      },
-      {
-        relationships_write = []
-        relationships_delete = [
-          "organization:$${organization_id}#$${role}@user:$${user_id}"
-        ]
-        attributes_write = []
-        attributes_delete = []
-      }
-    ]
-  },
-  {
-    name = "permission_bundle"
-    arguments = ["resource_id"]
-    operations = [
-      {
-        relationships_write = []
-        relationships_delete = []
-        attributes_write = [
-          "resource:$${resource_id}#public@true"
-        ]
-        attributes_delete = []
-      }
-    ]
-  }
-]
-`
-
 const singleBundleDefinition = `
 bundles = [
   {
