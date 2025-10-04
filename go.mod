@@ -3,7 +3,7 @@ module github.com/nrf110/terraform-provider-permify
 go 1.25.1
 
 require (
-	buf.build/gen/go/permifyco/permify/protocolbuffers/go v1.36.9-20250909115910-bf55f1c31821.1
+	buf.build/gen/go/permifyco/permify/protocolbuffers/go v1.36.10-20250909115910-bf55f1c31821.1
 	github.com/Permify/permify-go v0.4.9
 	github.com/hashicorp/terraform-plugin-docs v0.23.0
 	github.com/hashicorp/terraform-plugin-framework v1.16.1
@@ -16,8 +16,8 @@ require (
 )
 
 require (
-	buf.build/gen/go/envoyproxy/protoc-gen-validate/protocolbuffers/go v1.36.9-20240617172848-daf171c6cdb5.1 // indirect
-	buf.build/gen/go/grpc-ecosystem/grpc-gateway/protocolbuffers/go v1.36.9-20241220201140-4c5ba75caaf8.1 // indirect
+	buf.build/gen/go/envoyproxy/protoc-gen-validate/protocolbuffers/go v1.36.10-20221025150516-6607b10f00ed.1 // indirect
+	buf.build/gen/go/grpc-ecosystem/grpc-gateway/protocolbuffers/go v1.36.10-20221127060915-a1ecdc58eccd.1 // indirect
 	buf.build/gen/go/permifyco/permify/grpc/go v1.5.1-20250909115910-bf55f1c31821.2 // indirect
 	dario.cat/mergo v1.0.2 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20250102033503-faa5f7b0171c // indirect
@@ -137,7 +137,7 @@ require (
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250908214217-97024824d090 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250908214217-97024824d090 // indirect
-	google.golang.org/protobuf v1.36.9 // indirect
+	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
