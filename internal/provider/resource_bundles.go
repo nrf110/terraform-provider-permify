@@ -142,10 +142,11 @@ func (r *bundlesResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
+	// Create a map to store results by bundle name to preserve order
+	bundleResults := make(map[string]BundleModel)
 	var (
-		bundles []BundleModel
-		mu      sync.Mutex
-		wg      sync.WaitGroup
+		mu sync.Mutex
+		wg sync.WaitGroup
 	)
 
 	for _, bundle := range data.Bundles {
@@ -161,18 +162,26 @@ func (r *bundlesResource) Read(ctx context.Context, req resource.ReadRequest, re
 			if err != nil {
 				resp.Diagnostics.AddError("Failed to read Permify Bundle", err.Error())
 			} else {
-				bundles = append(bundles, FromBundleReadResponse(result))
+				bundleResults[bundle.Name.ValueString()] = FromBundleReadResponse(result)
 			}
 		})
 	}
 
 	wg.Wait()
 
-	data.Bundles = bundles
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
+	// Reconstruct bundles in the original order
+	var bundles []BundleModel
+	for _, originalBundle := range data.Bundles {
+		if result, exists := bundleResults[originalBundle.Name.ValueString()]; exists {
+			bundles = append(bundles, result)
+		}
+	}
+
+	data.Bundles = bundles
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 
 	tflog.Debug(ctx, "Read Bundles resource", map[string]any{"success": true})
