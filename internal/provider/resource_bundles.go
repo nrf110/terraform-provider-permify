@@ -181,6 +181,7 @@ func (r *bundlesResource) Read(ctx context.Context, req resource.ReadRequest, re
 		}
 	}
 
+	data.ID = data.TenantID
 	data.Bundles = bundles
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 
@@ -233,6 +234,7 @@ func (r *bundlesResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 	wg.Wait()
 
+	data.ID = data.TenantID
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 
 	tflog.Debug(ctx, "Updated Bundles resource", map[string]any{"success": true})
